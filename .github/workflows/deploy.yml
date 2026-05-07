@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -17,25 +18,38 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Find app directory
+        id: find
+        run: |
+          DIR=$(dirname "$(find . -name package.json | head -n 1)")
+          echo "dir=$DIR" >> $GITHUB_OUTPUT
+          echo "App directory: $DIR"
+
       - uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      - run: npm install
-        working-directory: ./zaikokannri-4.0
+      - name: Install
+        run: npm install
+        working-directory: ${{ steps.find.outputs.dir }}
 
-      - run: npm run build
-        working-directory: ./zaikokannri-4.0
+      - name: Build
+        run: npm run build
+        working-directory: ${{ steps.find.outputs.dir }}
 
-      - uses: actions/upload-pages-artifact@v3
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
         with:
-          path: ./zaikokannri-4.0/dist
+          path: ${{ steps.find.outputs.dir }}/dist
 
   deploy:
     needs: build
     runs-on: ubuntu-latest
+
     environment:
       name: github-pages
+
     steps:
       - id: deployment
         uses: actions/deploy-pages@v4
+      
